@@ -47,7 +47,11 @@ class PropertyController {
         image: images,
       });
 
-      return res.status(201).json({ success: true, message: 'Propiedad creada correctamente', data: validatedData });
+      const property = new Property(validatedData)
+
+      await property.save();
+
+      return res.status(201).json({ success: true, message: 'Propiedad creada correctamente', data: property });
 
     } catch (error) {
       const e = error as Error

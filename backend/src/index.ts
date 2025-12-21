@@ -4,6 +4,7 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser'
 import { connectDb } from './db/connectdb';
 import { uploadsPath } from './middlewares/multer.middleware';
+import protertyRoutes from './routes/property.route'
 
 dotenv.config();
 
@@ -14,7 +15,8 @@ app.use(express.json());
 app.use(cors());
 app.use(cookieParser());
 
-app.use('/uploads', express.static(uploadsPath))
+app.use('/uploads', express.static(uploadsPath));
+app.use('/properties', protertyRoutes)
 
 app.get('/', (__: Request, res: Response) => {
   res.json({ status: true })
