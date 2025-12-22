@@ -104,14 +104,61 @@ class UserController {
   }
 
   static login = async (req: Request, res: Response): Promise<Response | void> => {
+    try {
+      const { email, password } = req.body;
 
+      const validator = UserValidator.safeParse({ email, password });
+
+      if (!validator.success) {
+        return res.status(404).json({ sucess: false, error: validator.error.flatten().fieldErrors });
+      }
+
+      const user = await User.findOne({ email })
+
+      const token = jwt.sign(user?._id!, process.env.JWT_SECRET!, { expiresIn: '1h' });
+
+      return res.cookie('token', token).json({ success: true, message: 'Login exitoso. Redirigiendo a Home.' });
+
+
+    } catch (error) {
+      const e = error as Error
+      console.log(error)
+      return res.status(500).json({ success: false, error: e.message });
+    }
   }
 
   static logout = async (req: Request, res: Response): Promise<Response | void> => {
+    try {
+      const { token } = req.cookies;
+
+      if (!token) {
+        return res.status(400).json({ success: false, error: 'No hay token proporcionado' })
+      }
+
+      return res.clearCookie('token');
+    } catch (error) {
+      const e = error as Error
+      console.log(error)
+      return res.status(500).json({ success: false, error: e.message });
+    }
 
   }
 
   static getSession = async (req: Request, res: Response): Promise<Response | void> => {
+    try {
+      const user = await User.findById(req.user?._id).select('-password');
+
+      if (!user) {
+        return res.status(400).json({ success: false, error: 'No hay ningun usuario proporcionado.' })
+      }
+
+      return res.status(200).json({ success: true, message: 'El usuario tiene sesión', data: user })
+
+    } catch (error) {
+      const e = error as Error
+      console.log(error)
+      return res.status(500).json({ success: false, error: e.message });
+    }
 
   }
 

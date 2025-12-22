@@ -5,6 +5,7 @@ import cookieParser from 'cookie-parser'
 import { connectDb } from './db/connectdb';
 import { uploadsPath } from './middlewares/multer.middleware';
 import protertyRoutes from './routes/property.route'
+import { UserInterfacePayload } from './interfaces/userpayload.interface';
 
 dotenv.config();
 
