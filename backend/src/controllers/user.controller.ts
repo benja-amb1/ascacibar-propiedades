@@ -113,9 +113,23 @@ class UserController {
         return res.status(404).json({ sucess: false, error: validator.error.flatten().fieldErrors });
       }
 
-      const user = await User.findOne({ email })
+      const user = await User.findOne({ email });
 
-      const token = jwt.sign(user?._id!, process.env.JWT_SECRET!, { expiresIn: '1h' });
+      if (!user) {
+        return res.status(400).json({ success: false, error: 'Credenciales inválidas' });
+      }
+
+      const isMatch = await bcrypt.compare(password, user.password);
+
+      if (!isMatch) {
+        return res.status(400).json({ success: false, error: 'Credenciales inválidas' });
+      }
+
+      const token = jwt.sign(
+        { id: user._id },
+        process.env.JWT_SECRET!,
+        { expiresIn: '1h' }
+      );
 
       return res.cookie('token', token).json({ success: true, message: 'Login exitoso. Redirigiendo a Home.' });
 
