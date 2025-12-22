@@ -36,13 +36,36 @@ class PropertyController {
     }
   }
 
+  static getProperty = async (req: Request, res: Response): Promise<Response | void> => {
+    try {
+      const { id } = req.params;
+
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({ success: false, error: 'El ID de la propiedad es inválido.' });
+      }
+
+      const property = await Property.findById(id);
+
+      if (!property) {
+        return res.status(404).json({ success: false, error: 'Error al obtener la propiedad.' });
+      }
+
+      return res.status(200).json({ success: true, data: property })
+
+    } catch (error) {
+      const e = error as Error
+      console.log(error)
+      return res.status(500).json({ success: false, error: e.message });
+    }
+  }
+
   static addProperty = async (req: Request, res: Response): Promise<Response | void> => {
     try {
       const files = req.files as Express.Multer.File[] | undefined;
 
       const images = files?.map(file => file.path);
 
-      const validatedData = PropertyValidator.parse({
+      const validatedData = PropertyValidator.safeParse({
         ...req.body,
         price: Number(req.body.price),
         baths: Number(req.body.baths),
@@ -50,7 +73,11 @@ class PropertyController {
         image: images,
       });
 
-      const property = new Property(validatedData)
+      if (!validatedData.success) {
+        return res.status(400).json({ success: false, error: validatedData.error.flatten().fieldErrors })
+      }
+
+      const property = new Property(validatedData.data)
 
       await property.save();
 
@@ -63,91 +90,99 @@ class PropertyController {
     }
   }
 
-  static deleteProperty = async (req: Request, res: Response): Promise<Response | void> => {
+  static deleteProperty = async (req: Request, res: Response): Promise<Response> => {
     try {
       const { id } = req.params;
 
       if (!mongoose.Types.ObjectId.isValid(id)) {
-        return res.json({ success: false, error: 'El ID de la propiedad es inválido.' });
+        return res.status(400).json({ success: false, error: "El ID de la propiedad es inválido." });
       }
 
       const property = await Property.findByIdAndDelete(id);
 
       if (!property) {
-        return res.json({ success: false, error: 'Error al eliminar la propiedad.' });
+        return res.status(404).json({ success: false, error: "Propiedad no encontrada." });
       }
 
-      if (property.image && property.image.length > 0) {
+      if (property.image?.length) {
         for (const imagePath of property.image) {
           try {
-            fs.unlinkSync(path.resolve(imagePath))
-          } catch (error) {
-            console.log(`Error al eliminar las imagenes ${imagePath}`, error);
+            fs.unlinkSync(path.resolve(imagePath));
+          } catch (err) {
+            console.warn(`No se pudo eliminar la imagen: ${imagePath}`, err);
           }
         }
       }
 
-      return res.json({ success: true, message: 'Propiedad eliminada correctamente.', data: property });
+      return res.status(200).json({
+        success: true,
+        message: "Propiedad eliminada correctamente",
+        data: property,
+      });
     } catch (error) {
-      const e = error as Error
-      console.log(error)
-      return res.status(500).json({ success: false, error: e.message });
+      console.error(error);
+      return res.status(500).json({ success: false, error: "Error interno del servidor" });
     }
+  };
 
-  }
-
-  static updateProperty = async (req: Request, res: Response): Promise<Response | void> => {
+  static updateProperty = async (req: Request, res: Response): Promise<Response> => {
     try {
       const { id } = req.params;
-      const images = req.files as Express.Multer.File[] || [];
+      const files = req.files as Express.Multer.File[] | undefined;
+      const newImages = files?.map(file => file.path) ?? [];
 
       if (!mongoose.Types.ObjectId.isValid(id)) {
-        return res.json({ success: false, error: 'El ID de la propiedad es inválido.' });
+        return res.status(400).json({ success: false, error: "El ID de la propiedad es inválido." });
       }
-
-
 
       const property = await Property.findById(id);
 
       if (!property) {
-        return res.json({ success: false, error: 'Error al editar la propiedad.' });
+        return res.status(404).json({ success: false, error: "Propiedad no encontrada." });
       }
 
-      if (property.image && property.image.length > 0) {
+      const validation = PropertyValidatorPartial.safeParse({
+        ...req.body,
+        price: req.body.price ? Number(req.body.price) : undefined,
+        baths: req.body.baths ? Number(req.body.baths) : undefined,
+        rooms: req.body.rooms ? Number(req.body.rooms) : undefined,
+        image: newImages.length ? newImages : property.image,
+      });
 
+      if (!validation.success) {
+        return res.status(400).json({
+          success: false,
+          errors: validation.error.flatten().fieldErrors,
+        });
+      }
+
+      const updatedProperty = await Property.findByIdAndUpdate(
+        id,
+        validation.data,
+        { new: true }
+      );
+
+      if (newImages.length && property.image?.length) {
         for (const oldImg of property.image) {
           try {
-            fs.unlinkSync(path.join(oldImg))
-          } catch (error) {
-            console.log(`Error al editar las imagenes ${oldImg}`, error);
+            fs.unlinkSync(path.resolve(oldImg));
+          } catch (err) {
+            console.warn(`No se pudo eliminar la imagen: ${oldImg}`, err);
           }
         }
       }
 
-      const imagesPath = images.map(img => img.path);
-
-      const validator = PropertyValidatorPartial.parse({
-        ...req.body,
-        price: Number(req.body.price),
-        baths: Number(req.body.baths),
-        rooms: Number(req.body.rooms),
-        image: imagesPath
-      })
-
-      const updatedProperty = await Property.findByIdAndUpdate(id, validator, { new: true });
-
-      if (!updatedProperty) {
-        return res.json({ success: false, error: 'Error el editar la propiedad.' })
-      }
-
-      return res.status(200).json({ success: true, message: 'Propiedad editatada correctamente.', data: updatedProperty })
-
+      return res.status(200).json({
+        success: true,
+        message: "Propiedad actualizada correctamente",
+        data: updatedProperty,
+      });
     } catch (error) {
-      const e = error as Error
-      console.log(error)
-      return res.status(500).json({ success: false, error: e.message });
+      console.error(error);
+      return res.status(500).json({ success: false, error: "Error interno del servidor" });
     }
-  }
+  };
 }
+
 
 export { PropertyController }
