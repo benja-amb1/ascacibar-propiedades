@@ -8,6 +8,14 @@ import protertyRoutes from './routes/property.route'
 
 dotenv.config();
 
+declare global {
+  namespace Express {
+    interface Request {
+      user?: UserInterfacePayload
+    }
+  }
+}
+
 const app = express();
 const PORT = process.env.PORT
 

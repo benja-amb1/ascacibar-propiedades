@@ -30,5 +30,8 @@ class UserController {
       console.log(error)
       return res.status(500).json({ success: false, error: e.message });
     }
+
+
+
   }
 }
