@@ -49,9 +49,6 @@ class UserController {
         return res.status(400).json({ success: false, error: 'El ID proporcionado es inválido.' })
       }
 
-      if (req.user?._id !== id) {
-        return res.status(401).json({ success: false, error: 'No tienes permiso para realizar esta acción.' })
-      }
 
       const emailExists = await User.findOne({ email, _id: { $ne: id } });
 
@@ -73,6 +70,11 @@ class UserController {
         return res.status(400).json({ success: false, error: 'Error al editar el usuario.' })
       }
 
+
+      if (updatedUser._id.toString() !== id) {
+        return res.status(401).json({ success: false, error: 'No tienes permiso para realizar esta acción.' })
+      }
+
       return res.status(200).json({ success: true, message: 'Usuario editado correctamente.', data: updatedUser })
     } catch (error) {
       const e = error as Error
@@ -89,17 +91,20 @@ class UserController {
         return res.status(400).json({ success: false, error: 'El ID proporcionado es inválido.' })
       }
 
-      if (req.user?._id !== id) {
-        return res.status(401).json({ success: false, error: 'No tienes permiso para realizar esta acción.' })
-      }
-
       const userDeleted = await User.findByIdAndDelete(id);
 
       if (!userDeleted) {
         return res.status(400).json({ success: false, error: 'Error al eliminar el usuario.' });
       }
 
+      if (userDeleted._id.toString() !== id) {
+        return res.status(401).json({ success: false, error: 'No tienes permiso para realizar esta acción.' })
+      }
+
+
+
       return res.status(200).json({ success: true, message: 'Usuario eliminado correctamente.' })
+
 
     } catch (error) {
       const e = error as Error
@@ -146,26 +151,40 @@ class UserController {
     }
   }
 
-  static logout = async (req: Request, res: Response): Promise<Response | void> => {
+  static logout = async (req: Request, res: Response): Promise<Response> => {
     try {
       const { token } = req.cookies;
 
       if (!token) {
-        return res.status(400).json({ success: false, error: 'No hay token proporcionado' })
+        return res.status(400).json({
+          success: false,
+          error: 'No hay token proporcionado'
+        });
       }
 
-      return res.clearCookie('token');
-    } catch (error) {
-      const e = error as Error
-      console.log(error)
-      return res.status(500).json({ success: false, error: e.message });
-    }
+      return res
+        .clearCookie('token', {
+          httpOnly: true,
+          sameSite: 'strict',
+          secure: process.env.NODE_ENV === 'production'
+        })
+        .status(200)
+        .json({ success: true, message: 'Sesión cerrada correctamente' });
 
-  }
+    } catch (error) {
+      const e = error as Error;
+      console.error(e);
+      return res.status(500).json({
+        success: false,
+        error: e.message
+      });
+    }
+  };
 
   static getSession = async (req: Request, res: Response): Promise<Response | void> => {
     try {
-      const user = await User.findById(req.user?._id).select('-password');
+      const { id } = req.params;
+      const user = await User.findById(id).select('-password');
 
       if (!user) {
         return res.status(400).json({ success: false, error: 'No hay ningun usuario proporcionado.' })
@@ -189,15 +208,17 @@ class UserController {
         return res.status(400).json({ success: false, error: 'El ID proporcionado es inválido.' })
       }
 
-      if (req.user?._id !== id) {
-        return res.status(401).json({ success: false, error: 'No tienes permiso para realizar esta acción.' })
-      }
-
-      const user = await User.findById(id);
+      const user = await User.findById(id).select('-password');
 
       if (!user) {
         return res.status(400).json({ success: false, error: 'No se encontró ningun usuario.' })
       }
+
+      if (user._id.toString() !== id) {
+        return res.status(401).json({ success: false, error: 'No tienes permiso para realizar esta acción.' })
+      }
+
+
 
       return res.status(200).json({ success: true, data: user })
     } catch (error) {
