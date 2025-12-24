@@ -11,6 +11,18 @@ class UserController {
     try {
       const { name, surname, email, role, password } = req.body;
 
+      if (!req.user) {
+        return res.status(401).json({ success: false, error: 'Usuario no autenticado' });
+      }
+
+
+      if (req.user.role === 'admin' && role !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          error: 'Un administrador solo puede crear usuarios administradores'
+        });
+      }
+
       const emailExists = await User.findOne({ email });
 
       if (emailExists) {
