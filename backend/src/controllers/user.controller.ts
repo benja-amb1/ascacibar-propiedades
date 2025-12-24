@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { UserValidator, UserValidatorPartial } from "../validator/user.validator";
 import mongoose, { mongo } from "mongoose";
+import { UserLoginValidator } from "../validator/userlogin.validator";
 
 class UserController {
   static addUser = async (req: Request, res: Response): Promise<Response | void> => {
@@ -24,7 +25,11 @@ class UserController {
         return res.status(400).json({ success: false, error: validator.error.flatten().fieldErrors });
       }
 
-      return res.status(201).json({ success: true, message: 'El registro ha sido exitoso.', data: validator.data })
+      const user = new User(validator.data);
+
+      await user.save();
+
+      return res.status(201).json({ success: true, message: 'El registro ha sido exitoso.', data: user })
 
     } catch (error) {
       const e = error as Error
@@ -107,7 +112,7 @@ class UserController {
     try {
       const { email, password } = req.body;
 
-      const validator = UserValidator.safeParse({ email, password });
+      const validator = UserLoginValidator.safeParse({ email, password });
 
       if (!validator.success) {
         return res.status(404).json({ sucess: false, error: validator.error.flatten().fieldErrors });
