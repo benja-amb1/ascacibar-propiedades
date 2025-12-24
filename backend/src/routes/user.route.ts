@@ -2,12 +2,13 @@ import { Router } from "express";
 import { UserController } from "../controllers/user.controller";
 import { CheckRoleMiddleware } from "../middlewares/checkrole.middleware";
 import { AuthMiddleware } from "../middlewares/auth.middleware";
+import { authLimiter } from "../utils/ratelimiter.util";
 
 const router = Router();
 
-router.post('/register', UserController.addUser);
-router.post('/register-admin', AuthMiddleware, CheckRoleMiddleware('admin'), UserController.addAdmin);
-router.post('/login', UserController.login);
+router.post('/register', authLimiter, UserController.addUser);
+router.post('/register-admin', authLimiter, AuthMiddleware, CheckRoleMiddleware('admin'), authLimiter, UserController.addAdmin);
+router.post('/login', authLimiter, UserController.login);
 router.post('/logout', UserController.logout);
 router.get('/session/:id', AuthMiddleware, UserController.getSession);
 router.get('/:id', AuthMiddleware, UserController.getUser);

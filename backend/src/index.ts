@@ -7,6 +7,8 @@ import { uploadsPath } from './middlewares/multer.middleware';
 import protertyRoutes from './routes/property.route'
 import userRoutes from './routes/user.route'
 import { UserInterfacePayload } from './interfaces/userpayload.interface';
+import { sendEmail } from './email/sendemail.controller';
+import { emailLimiter } from './utils/ratelimiter.util';
 
 dotenv.config();
 
@@ -28,6 +30,7 @@ app.use(cookieParser());
 app.use('/uploads', express.static(uploadsPath));
 app.use('/properties', protertyRoutes);
 app.use('/auth', userRoutes);
+app.post('/email-send', emailLimiter, sendEmail)
 
 app.get('/', (__: Request, res: Response) => {
   res.json({ status: true })

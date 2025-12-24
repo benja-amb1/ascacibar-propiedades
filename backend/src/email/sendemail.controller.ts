@@ -19,6 +19,10 @@ const sendEmail = async (req: Request, res: Response): Promise<Response | void> 
   try {
     const { name, surname, subject, mail, message } = req.body;
 
+    if (!name || !surname || !mail || !subject || !message) {
+      return res.status(400).json({ error: 'Campos obligatorios' });
+    }
+
     const safeMessage = sanitizeHtml(message, {
       allowedTags: [],
       allowedAttributes: {}
