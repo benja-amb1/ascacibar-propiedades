@@ -7,48 +7,43 @@ import mongoose, { mongo } from "mongoose";
 import { UserLoginValidator } from "../validator/userlogin.validator";
 
 class UserController {
-  static addUser = async (req: Request, res: Response): Promise<Response | void> => {
-    try {
-      const { name, surname, email, role, password } = req.body;
+  static register = (role: string) => {
+    return async (req: Request, res: Response): Promise<Response | void> => {
+      try {
+        const { name, surname, email, password } = req.body;
 
-      if (!req.user) {
-        return res.status(401).json({ success: false, error: 'Usuario no autenticado' });
+        const emailExists = await User.findOne({ email });
+
+        if (emailExists) {
+          return res.status(409).json({ success: false, error: "El email ya existe. Por favor intente con otro email." });
+        }
+
+        const hashed = await bcrypt.hash(password, 10);
+
+        const validator = UserValidator.safeParse({ name, surname, email, role, password: hashed });
+
+        if (!validator.success) {
+          return res.status(400).json({ success: false, error: validator.error.flatten().fieldErrors });
+        }
+
+        const user = new User(validator.data);
+
+        await user.save();
+
+        const { password: _, ...userWithoutPassword } = user.toObject();
+
+        return res.status(201).json({ success: true, message: 'El registro ha sido exitoso.', data: userWithoutPassword })
+
+      } catch (error) {
+        const e = error as Error
+        console.log(error)
+        return res.status(500).json({ success: false, error: e.message });
       }
-
-
-      if (req.user.role === 'admin' && role !== 'admin') {
-        return res.status(403).json({
-          success: false,
-          error: 'Un administrador solo puede crear usuarios administradores'
-        });
-      }
-
-      const emailExists = await User.findOne({ email });
-
-      if (emailExists) {
-        return res.status(404).json({ success: false, error: "El email ya existe. Por favor intente con otro email." });
-      }
-
-      const hashed = await bcrypt.hash(password, 10);
-
-      const validator = UserValidator.safeParse({ name, surname, email, role, password: hashed });
-
-      if (!validator.success) {
-        return res.status(400).json({ success: false, error: validator.error.flatten().fieldErrors });
-      }
-
-      const user = new User(validator.data);
-
-      await user.save();
-
-      return res.status(201).json({ success: true, message: 'El registro ha sido exitoso.', data: user })
-
-    } catch (error) {
-      const e = error as Error
-      console.log(error)
-      return res.status(500).json({ success: false, error: e.message });
     }
   }
+
+  static addUser = this.register('user');
+  static addAdmin = this.register('admin');
 
   static updateUser = async (req: Request, res: Response): Promise<Response | void> => {
 
