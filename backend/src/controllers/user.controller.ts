@@ -3,7 +3,7 @@ import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { UserValidator, UserValidatorPartial } from "../validator/user.validator";
-import mongoose from "mongoose";
+import mongoose, { mongo } from "mongoose";
 
 class UserController {
   static addUser = async (req: Request, res: Response): Promise<Response | void> => {
@@ -168,6 +168,33 @@ class UserController {
 
       return res.status(200).json({ success: true, message: 'El usuario tiene sesión', data: user })
 
+    } catch (error) {
+      const e = error as Error
+      console.log(error)
+      return res.status(500).json({ success: false, error: e.message });
+    }
+
+  }
+
+  static getUser = async (req: Request, res: Response): Promise<Response | void> => {
+    try {
+      const { id } = req.params;
+
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({ success: false, error: 'El ID proporcionado es inválido.' })
+      }
+
+      if (req.user?._id !== id) {
+        return res.status(401).json({ success: false, error: 'No tienes permiso para realizar esta acción.' })
+      }
+
+      const user = await User.findById(id);
+
+      if (!user) {
+        return res.status(400).json({ success: false, error: 'No se encontró ningun usuario.' })
+      }
+
+      return res.status(200).json({ success: true, data: user })
     } catch (error) {
       const e = error as Error
       console.log(error)
