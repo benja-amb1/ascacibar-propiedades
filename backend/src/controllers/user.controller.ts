@@ -20,13 +20,13 @@ class UserController {
 
         const hashed = await bcrypt.hash(password, 10);
 
-        const validator = UserValidator.safeParse({ name, surname, email, role, password: hashed });
+        const validator = UserValidator.safeParse({ name, surname, email, role, password });
 
         if (!validator.success) {
           return res.status(400).json({ success: false, error: validator.error.flatten().fieldErrors });
         }
 
-        const user = new User(validator.data);
+        const user = new User({ ...validator.data, password: hashed });
 
         await user.save();
 
