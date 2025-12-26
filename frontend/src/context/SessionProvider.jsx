@@ -38,4 +38,4 @@ const SessionProvider = ({ children }) => {
 
 const useAuth = () => useContext(AuthContext)
 
-export { SessionProvider }
+export { SessionProvider, useAuth }
