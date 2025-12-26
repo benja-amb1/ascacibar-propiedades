@@ -190,8 +190,8 @@ class UserController {
 
   static getSession = async (req: Request, res: Response): Promise<Response | void> => {
     try {
-      const { id } = req.params;
-      const user = await User.findById(id).select('-password');
+      const userId = req.user?._id;
+      const user = await User.findById(userId).select('-password');
 
       if (!user) {
         return res.status(400).json({ success: false, error: 'No hay ningun usuario proporcionado.' })
