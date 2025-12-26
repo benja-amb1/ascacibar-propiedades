@@ -148,7 +148,11 @@ class UserController {
         { expiresIn: '1h' }
       );
 
-      return res.cookie('token', token).json({ success: true, message: 'Login exitoso. Redirigiendo a Home.' });
+      return res.cookie('token', token, {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: false
+      }).json({ success: true, message: 'Login exitoso. Redirigiendo a Home.' });
 
 
     } catch (error) {

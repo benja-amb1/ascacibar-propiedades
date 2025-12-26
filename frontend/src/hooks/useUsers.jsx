@@ -91,7 +91,8 @@ const useUsers = () => {
       const res = await fetch(`${backendUrl}/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData.email, formData.password)
+        body: JSON.stringify({ email: formData.email, password: formData.password }),
+        credentials: 'include'
       });
 
       const data = await res.json();
@@ -119,7 +120,7 @@ const useUsers = () => {
     setMsgError('');
     setMsgSuccess('');
     try {
-      const res = await fetch(`${backendUrl}/login`, {
+      const res = await fetch(`${backendUrl}/logout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include'
