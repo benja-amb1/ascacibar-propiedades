@@ -7,12 +7,14 @@ const AuthContext = createContext();
 
 const SessionProvider = ({ children }) => {
 
-  const [user, setUser] = useState(false);
+  const [user, setUser] = useState(null);
 
   const getSession = async () => {
     try {
       const res = await fetch(`${backendUrl}/session`, { method: 'GET', credentials: 'include' });
       const data = await res.json();
+
+      console.log(data);
 
       if (data.success) {
         setUser(data.data);

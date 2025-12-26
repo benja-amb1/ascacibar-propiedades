@@ -1,5 +1,5 @@
 interface UserInterfacePayload {
-  _id: string
+  id: string
   role: 'admin' | 'user';
 }
 

@@ -9,7 +9,7 @@ const CheckRoleMiddleware = (role: string) => {
         return res.status(401).json({ success: false, error: 'No autenticado' });
       }
 
-      const user = await User.findById(req.user._id).select('role');
+      const user = await User.findById(req.user.id).select('role');
 
       if (!user) {
         return res.status(401).json({ success: false, error: 'Usuario no encontrado' });
